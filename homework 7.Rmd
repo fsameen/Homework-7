@@ -1,0 +1,440 @@
+---
+title: "Homework 7"
+author: "Fareha Sameen"
+date: "11/17/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Group: Nehsma and Hertz 
+
+```
+```
+data_use1$earn_lastyr <- as.factor(data_use1$ERNYR_P)
+levels(data_use1$earn_lastyr) <-
+c("0","$01-$4999","$5000-$9999","$10000-$14999","$15000-$19999","$20000-$24999","$25000-$34999","$35000-$44999","$45000-$54999","$55000-$64999","$65000-$74999","$75000
+and over",NA,NA,NA)
+```
+```
+# We're trying to predict the health insurance of asian women with highschool and college education. 
+model_logit1 <- glm(NOTCOV ~ AGE_P + I(AGE_P^2) + female + Asian +
+educ_hs + educ_smcoll + educ_as + educ_bach + educ_adv , data =
+data_use1)
+
+d_region <- data.frame(model.matrix(~ data_use1$REGION))
+d_region_born <- data.frame(model.matrix(~
+factor(data_use1$region_born)))  
+dat_for_analysis_sub <- data.frame(
+ data_use1$NOTCOV,
+ data_use1$AGE_P,
+ data_use1$female,
+ data_use1$AfAm,
+ data_use1$Asian,
+ data_use1$RaceOther,
+ data_use1$Hispanic,
+ data_use1$educ_hs,
+ data_use1$educ_smcoll,
+ data_use1$educ_as,
+ data_use1$educ_bach,
+ data_use1$educ_adv,
+ data_use1$married,
+ data_use1$widowed,
+ data_use1$divorc_sep,
+ d_region[,2:4],
+ d_region_born[,2:12])
+names(dat_for_analysis_sub) <- c("NOTCOV",
+                                "Age",
+                                "female",
+                                "AfAm",
+                                "Asian",
+                                "RaceOther",
+                                "Hispanic",
+                                "educ_hs",
+                                "educ_smcoll",
+                                "educ_as",
+                                "educ_bach",
+                                "educ_adv",
+                                "married",
+                                "widowed",
+                                "divorc_sep",
+                                "Region.Midwest",
+                                "Region.South",
+                                "Region.West",
+                                "born.Mex.CentAm.Carib",
+                                "born.S.Am",
+                                "born.Eur",
+                                "born.f.USSR",
+                                "born.Africa",
+                                "born.MidE",
+                                "born.India.subc",
+                                "born.Asia",
+                                "born.SE.Asia",
+                                "born.elsewhere",
+                                "born.unknown")
+
+```
+
+```
+# We create a data object that is standardized and also divide it into trainding and test sets. Standardization ensures that the predictions are on similar scales. 
+require("standardize")
+set.seed(654321)
+NN <- length(dat_for_analysis_sub$NOTCOV)
+restrict_1 <- as.logical(round(runif(NN,min=0,max=0.6))) 
+restrict_1 <- (runif(NN) < 0.1) 
+
+summary(restrict_1)
+  Mode   FALSE    TRUE
+logical  100857   11196
+
+dat_train <- subset(dat_for_analysis_sub, restrict_1)
+dat_test <- subset(dat_for_analysis_sub, !restrict_1)
+sobj <- standardize(NOTCOV ~ Age + female + AfAm + Asian + RaceOther +
+Hispanic +
+                     educ_hs + educ_smcoll + educ_as + educ_bach + educ_adv +
+                     married + widowed + divorc_sep +
+                     Region.Midwest + Region.South + Region.West +
+                     born.Mex.CentAm.Carib + born.S.Am + born.Eur +
+born.f.USSR +
+                     born.Africa + born.MidE + born.India.subc + born.Asia +
+                     born.SE.Asia + born.elsewhere + born.unknown,
+dat_train, family = binomial)
+```
+```
+# We use this code to predict using the test sets we created and use summary to look at the effect of different variables. 
+s_dat_test <- predict(sobj, dat_test)
+model_lpm1 <- lm(sobj$formula, data = sobj$data)
+summary(model_lpm1)
+
+Call:
+lm(formula = sobj$formula, data = sobj$data)
+
+Residuals:
+     Min       1Q   Median       3Q      Max 
+-0.64636 -0.13494 -0.08384 -0.02304  1.04647 
+
+Coefficients:
+                        Estimate Std. Error t value Pr(>|t|)    
+(Intercept)             0.820942   0.070577  11.632  < 2e-16 ***
+Age                    -0.020011   0.004658  -4.296 1.75e-05 ***
+female1                -0.011844   0.002981  -3.973 7.14e-05 ***
+AfAm1                  -0.007591   0.004463  -1.701 0.088988 .  
+Asian1                 -0.023581   0.008487  -2.778 0.005470 ** 
+RaceOther1              0.034637   0.011632   2.978 0.002911 ** 
+Hispanic1               0.026657   0.004626   5.763 8.49e-09 ***
+educ_hs1                0.058463   0.004540  12.879  < 2e-16 ***
+educ_smcoll1            0.034759   0.004985   6.972 3.29e-12 ***
+educ_as1                0.031681   0.006217   5.096 3.53e-07 ***
+educ_bach1              0.003815   0.005416   0.704 0.481147    
+educ_adv1              -0.011586   0.006642  -1.744 0.081140 .  
+married1               -0.016949   0.004391  -3.860 0.000114 ***
+widowed1               -0.030986   0.008967  -3.456 0.000551 ***
+divorc_sep1             0.000431   0.006520   0.066 0.947293    
+Region.Midwest1         0.008498   0.004950   1.717 0.086046 .  
+Region.South1           0.030997   0.004516   6.864 7.06e-12 ***
+Region.West1            0.008736   0.004706   1.856 0.063437 .  
+born.Mex.CentAm.Carib1  0.142349   0.006345  22.433  < 2e-16 ***
+born.S.Am1              0.086045   0.014796   5.816 6.21e-09 ***
+born.Eur1               0.011347   0.013831   0.820 0.411993    
+born.f.USSR1            0.057141   0.029547   1.934 0.053146 .  
+born.Africa1            0.091551   0.018294   5.004 5.69e-07 ***
+born.MidE1              0.021953   0.022797   0.963 0.335563    
+born.India.subc1        0.061083   0.017062   3.580 0.000345 ***
+born.Asia1              0.033417   0.015838   2.110 0.034895 *  
+born.SE.Asia1           0.048706   0.013642   3.570 0.000358 ***
+born.elsewhere1         0.025491   0.021315   1.196 0.231756    
+born.unknown1           0.061501   0.028117   2.187 0.028742 *  
+---
+
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.3112 on 11167 degrees of freedom
+Multiple R-squared:  0.1149,	Adjusted R-squared:  0.1127 
+F-statistic: 51.79 on 28 and 11167 DF,  p-value: < 2.2e-16
+
+# The negatives with the coefficient values show that women are less likely to have health insurance compared to men. Furthermore, African Americans and Asians are also less likely to have health insurance compared to other races. Its interesting that women with college education are likely to have health insurance, however there's a negative with the advanged degree. 
+```
+```
+pred_vals <- predict(model_logit1, s_dat_test, type = "response")
+pred_model_logit1 <- (pred_vals > 0.5)
+table(pred = pred_model_logit1, true = dat_test$NOTCOV)
+      true
+pred        0     1
+ FALSE 87299 11181
+ TRUE   1149  1241
+```
+```
+require(stargazer)
+stargazer(model_logit1, type = "text")
+
+==================================================
+                      Dependent variable:    
+                  ---------------------------
+                            NOTCOV           
+---------------------------------------------
+AGE_P                      0.014***          
+                           (0.0002)          
+                                             
+I(AGE_P2)                 -0.0002***         
+                           (0.00000)         
+                                             
+female                     -0.019***         
+                            (0.002)          
+                                             
+Asian                      -0.013***         
+                            (0.004)          
+                                             
+educ_hs                    -0.030***         
+                            (0.003)          
+                                             
+educ_smcoll                -0.083***         
+                            (0.003)          
+                                             
+educ_as                    -0.112***         
+                            (0.004)          
+                                             
+educ_bach                  -0.165***         
+                            (0.004)          
+                                             
+educ_adv                   -0.189***         
+                            (0.004)          
+                                             
+Constant                    0.0002           
+                            (0.003)          
+                                             
+---------------------------------------------
+Observations                112,053          
+Log Likelihood            -29,900.800        
+Akaike Inf. Crit.         59,821.610         
+=============================================
+Note:             *p<0.1; **p<0.05; ***p<0.01
+```
+```
+require(e1071)
+svm.model <- svm(as.factor(NOTCOV) ~ ., data = sobj$data, cost = 10,
+gamma = 0.1)
+svm.pred <- predict(svm.model, s_dat_test)
+table(pred = svm.pred, true = dat_test$NOTCOV)
+   true
+pred     0     1
+   0 86038 10093
+   1  2447  2279
+```
+```
+require('randomForest')
+set.seed(54321)
+model_randFor <- randomForest(as.factor(NOTCOV) ~ ., data = sobj$data,importance=TRUE, proximity=TRUE)
+print(model_randFor)
+
+Call:
+ randomForest(formula = as.factor(NOTCOV) ~ ., data = sobj$data,
+importance = TRUE, proximity = TRUE)
+Type of random forest: classification
+Number of trees: 500
+No. of variables tried at each split: 5
+
+OOB estimate of  error rate: 11.57%
+Confusion matrix:
+ 0   1 class.error
+0 9778  59 0.005997764
+1 1235 111 0.917533432
+```
+```
+round(importance(model_randFor),2)
+0      1 MeanDecreaseAccuracy MeanDecreaseGini
+Age                   27.75   7.19                30.47           224.63
+female                 3.05  -3.52                 0.57            22.64
+AfAm                  -5.05   9.69                 1.49            15.69
+Asian                 13.47  -9.70                10.37             9.56
+RaceOther              1.52  10.07                 6.28            14.58
+Hispanic              -6.50  19.02                16.71            52.34
+educ_hs               16.68  -9.48                13.62            21.47
+educ_smcoll           15.21  -5.48                13.98            14.54
+educ_as               11.91  -1.71                11.12            11.81
+educ_bach             14.89  11.59                17.21            19.00
+educ_adv              13.73  19.76                21.33            13.58
+married               20.92 -16.08                20.64            27.93
+widowed                2.67  -1.08                 2.41             6.98
+divorc_sep             9.47  -2.83                 9.07            13.07
+Region.Midwest         1.84  -0.95                 1.30            11.19
+Region.South           7.04   8.54                12.13            23.13
+Region.West            7.81  -2.98                 7.57            13.72
+born.Mex.CentAm.Carib  3.55  43.51                29.50           123.52
+born.S.Am             -7.66  14.29                -1.11             7.84
+born.Eur               4.79   0.40                 4.79             6.38
+born.f.USSR           -5.68  -0.97                -5.70             0.84
+born.Africa           -1.21   9.93                 3.99             5.55
+born.MidE              7.20  -0.10                 6.85             4.08
+born.India.subc        5.73  -3.47                 4.99             4.67
+born.Asia              0.76   1.40                 1.29             4.45
+born.SE.Asia           0.90   4.56                 2.34             5.84
+born.elsewhere         3.73  -4.00                 2.60             3.43
+born.unknown          -5.86  -2.86                -6.30             1.94
+# This indicates that 
+```
+```
+varImpPlot(model_randFor)
+pred_model1 <- predict(model_randFor,  s_dat_test)
+table(pred = pred_model1, true = dat_test$NOTCOV)
+true
+pred     0     1
+0 87845 11178
+1   603  1244
+```
+```
+# Elastic Net
+require(glmnet)
+model1_elasticnet <- glmnet(as.matrix(sobj$data[,-1]),sobj$data$NOTCOV)
+# default is alpha = 1, lasso
+par(mar=c(4.5,4.5,1,4))
+plot(model1_elasticnet)
+
+vnat=coef(model1_elasticnet)
+vnat=vnat[-1,ncol(vnat)] # remove the intercept, and get the
+coefficients at the end of the path
+axis(4, at=vnat,line=-.5,label=names(sobj$data[,-1]),las=1,tick=FALSE,cex.axis=0.5)
+
+# lasso only selects variables that are important for the predcitions. 
+```
+```
+plot(model1_elasticnet, xvar = "lambda")
+
+plot(model1_elasticnet, xvar = "dev", label = TRUE)
+
+print(model1_elasticnet)
+Call:  glmnet(x = as.matrix(sobj$data[, -1]), y = sobj$data$NOTCOV)
+
+  Df  %Dev   Lambda
+1   0  0.00 0.088570
+2   1  1.26 0.080700
+3   1  2.30 0.073530
+4   1  3.17 0.067000
+5   1  3.89 0.061050
+6   1  4.49 0.055630
+7   1  4.98 0.050680
+8   1  5.40 0.046180
+9   1  5.74 0.042080
+10  1  6.02 0.038340
+11  1  6.26 0.034930
+12  2  6.48 0.031830
+13  2  6.70 0.029000
+14  2  6.87 0.026430
+15  3  7.06 0.024080
+16  4  7.35 0.021940
+17  5  7.63 0.019990
+18  8  7.94 0.018210
+19  8  8.27 0.016600
+20  9  8.55 0.015120
+21 10  8.80 0.013780
+22 11  9.04 0.012550
+23 11  9.26 0.011440
+24 11  9.45 0.010420
+25 11  9.60 0.009497
+26 12  9.73 0.008654
+27 13  9.86 0.007885
+28 14  9.98 0.007184
+29 16 10.09 0.006546
+30 16 10.20 0.005965
+31 19 10.31 0.005435
+32 19 10.42 0.004952
+33 19 10.50 0.004512
+34 20 10.57 0.004111
+35 22 10.64 0.003746
+36 22 10.70 0.003413
+37 22 10.75 0.003110
+38 23 10.79 0.002834
+39 23 10.83 0.002582
+40 23 10.86 0.002353
+41 24 10.89 0.002144
+42 25 10.92 0.001953
+43 25 10.94 0.001780
+44 25 10.96 0.001622
+45 25 10.98 0.001477
+46 25 11.00 0.001346
+47 25 11.01 0.001227
+48 27 11.02 0.001118
+49 27 11.03 0.001018
+50 27 11.04 0.000928
+51 27 11.04 0.000846
+52 27 11.05 0.000770
+53 27 11.06 0.000702
+54 27 11.06 0.000640
+55 27 11.06 0.000583
+56 27 11.07 0.000531
+57 27 11.07 0.000484
+58 27 11.07 0.000441
+59 28 11.07 0.000402
+60 28 11.07 0.000366
+61 28 11.08 0.000333
+62 28 11.08 0.000304
+63 28 11.08 0.000277
+64 28 11.08 0.000252
+65 28 11.08 0.000230
+66 28 11.08 0.000209
+67 28 11.08 0.000191
+68 28 11.08 0.000174
+69 28 11.08 0.000158
+70 28 11.08 0.000144
+71 28 11.08 0.000131
+72 28 11.08 0.000120
+73 28 11.08 0.000109
+74 28 11.08 0.000099
+75 28 11.08 0.000091
+```
+```
+cvmodel1_elasticnet =
+cv.glmnet(data.matrix(sobj$data[,-1]),data.matrix(sobj$data$NOTCOV))
+cvmodel1_elasticnet$lambda.min
+[1] 0.0001443494
+
+log(cvmodel1_elasticnet$lambda.min)
+[1] -8.843274
+```
+```
+coef(cvmodel1_elasticnet, s = "lambda.min")
+29 x 1 sparse Matrix of class "dgCMatrix"
+                                1
+(Intercept)            2.702811502
+Age                   -0.016789554
+female                 0.014075640
+AfAm                   0.023175664
+Asian                  0.020474503
+RaceOther             -0.124977273
+Hispanic              -0.028413577
+educ_hs               -0.082913192
+educ_smcoll           -0.049456270
+educ_as               -0.050130906
+educ_bach              0.009229021
+educ_adv               0.030080994
+married                0.038868601
+widowed                0.059846243
+divorc_sep            -0.017459103
+Region.Midwest        -0.026492937
+Region.South          -0.074880389
+Region.West           -0.020042744
+born.Mex.CentAm.Carib -0.299403382
+born.S.Am             -0.169856235
+born.Eur              -0.044589247
+born.f.USSR           -0.031071025
+born.Africa           -0.116969502
+born.MidE             -0.122811448
+born.India.subc       -0.074507298
+born.Asia             -0.064225767
+born.SE.Asia          -0.072313410
+born.elsewhere        -0.005630858
+born.unknown          -0.048605718
+```
+```
+pred1_elasnet <- predict(model1_elasticnet, newx =
+data.matrix(s_dat_test), s = cvmodel1_elasticnet$lambda.min)
+pred_model1_elasnet <- (pred1_elasnet < mean(pred1_elasnet))
+table(pred = pred_model1_elasnet, true = dat_test$NOTCOV)
+      true
+pred        0     1
+ FALSE 60142  4362
+ TRUE  28306  8060
+```
+```
+model2_elasticnet <-
+glmnet(as.matrix(sobj$data[,-1]),sobj$data$NOTCOV, alpha = 0)
+```
